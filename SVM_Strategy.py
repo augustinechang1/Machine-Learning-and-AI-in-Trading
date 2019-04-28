@@ -1,10 +1,12 @@
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import talib as ta
 import seaborn as sns
 import fix_yahoo_finance
-
+from sklearn import svm
 from pandas_datareader import data as web
 from sklearn import mixture as mix
 from sklearn.preprocessing import StandardScaler
@@ -21,12 +23,11 @@ df['high'] = df['High'].shift(1)
 df['Low'] = df['Low'].shift(1)
 df['Close'] = df['Close'].shift(1)
 
-df['RSI'] = ta.RSI(np.array(df['close']), timeperiod = n) 
-df['SMA'] = df['close'].rolling(window = n).mean()
-df['Corr'] = df['SMA'].rolling(window = n).corr(df['close'])
-df['SAR'] = ta.SAR(np.array(df['high']), np.array(df['low']), 0.2,0.2)
-df['ADX'] = ta.ADX(np.array(df['high']), np.array(df['low']), \ 
-                    np.array(df['close']), timeperiod = n)
+df['RSI'] = ta.RSI(np.array(df['Close']), timeperiod = n)
+df['SMA'] = df['Close'].rolling(window = n).mean()
+df['Corr'] = df['SMA'].rolling(window = n).corr(df['Close'])
+df['SAR'] = ta.SAR(np.array(df['high']), np.array(df['Low']), 0.2,0.2)
+df['ADX'] = ta.ADX(np.array(df['high']), np.array(df['Low']), np.array(df['Close']), timeperiod = n)
 df['Return'] = np.log(df['Open'] / df['Open'].shift(1))
 
 print(df.head())
@@ -34,8 +35,9 @@ print(df.head())
 df = df.dropna()
 
 ss = StandardScaler()
-unsup.fit(np.reshape(ss.fit_transform(df[:split]), (-1, df.shape[1])))
-regime = unsup.predict(np.reshape(ss.fit_transform(df[split:]), \
+clf= svm.SVC(gamma='scale')
+clf.fit(np.reshape(ss.fit_transform(df[:split]), (-1, df.shape[1])))
+regime = clf.predict(np.reshape(ss.fit_transform(df[split:]), \
                             (-1, df.shape[1])))
 
 Regimes = pd.DataFrame(regime, columns = ['Regime'], index=df[split:].index)\
